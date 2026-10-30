@@ -1,0 +1,11 @@
+# Render Blueprint(静的サイトとして公開。無料・設定不要)
+services:
+  - type: web
+    name: kaisha-kansatsu
+    runtime: static
+    buildCommand: echo "ビルドは不要です"
+    staticPublishPath: .
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache
