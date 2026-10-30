@@ -2,7 +2,7 @@
 
 import * as THREE from 'three';
 import { OrbitControls } from '../lib/OrbitControls.js';
-import { nodes, findPath, FLY, BLD, WH, islands, export_wh, export_park, FLOOR_H, WALL_H } from './map.js';
+import { nodes, findPath, FLY, BLD, WH, RW, islands, export_wh, export_park, FLOOR_H, WALL_H } from './map.js';
 import { minuteOfDay, dateOf, dayIndex } from './calendar.js';
 
 // ---------- 色 ----------
@@ -77,8 +77,8 @@ function buildStatic(scene) {
 
   // 地面・道路・田んぼ
   const site = new Builder();
-  site.box(-2, -0.3, 6, 64, 0.3, 36, C.asphalt, 0, 0.01);
-  site.box(0, -0.31, 22.2, 90, 0.3, 4.6, C.road, 0, 0);
+  site.box(7, -0.3, 6, 82, 0.3, 36, C.asphalt, 0, 0.01);
+  site.box(6, -0.31, 22.2, 110, 0.3, 4.6, C.road, 0, 0);
   for (let x = -42; x < 44; x += 4) site.box(x, 0.0, 22.2, 2, 0.02, 0.12, C.line, 0, 0);
   site.box(0, -0.28, 19.6, 90, 0.32, 0.6, C.curb, 0, 0);
   site.box(0, -0.28, 24.8, 90, 0.32, 0.6, C.curb, 0, 0);
@@ -86,11 +86,11 @@ function buildStatic(scene) {
   for (const row of [8.6, 13.8, 16.6]) for (let i = 0; i <= 9; i++) site.box(-23 + i * 2.6 - 0.05, 0.0, row, 0.08, 0.02, 4.4, C.line, 0, 0);
   // 植え込み
   site.box(-30, -0.1, 6, 3, 0.3, 30, C.grass, 0, 0.04);
-  site.box(29, -0.1, 6, 3, 0.3, 30, C.grass, 0, 0.04);
-  site.box(-2, -0.1, -13.5, 64, 0.3, 3, C.grass, 0, 0.04);
+  site.box(47, -0.1, 6, 3, 0.3, 30, C.grass, 0, 0.04);
+  site.box(7, -0.1, -13.5, 82, 0.3, 3, C.grass, 0, 0.04);
   // フェンス
-  for (let x = -31; x <= 30; x += 2) site.box(x, 0, -14.8, 0.06, 1.6, 0.06, C.pole);
-  site.box(-0.5, 1.5, -14.8, 62, 0.05, 0.05, C.pole);
+  for (let x = -31; x <= 48; x += 2) site.box(x, 0, -14.8, 0.06, 1.6, 0.06, C.pole);
+  site.box(8.5, 1.5, -14.8, 80, 0.05, 0.05, C.pole);
   // 喫煙所(小屋根と灰皿スタンド)
   site.box(-26.5, 0, -1.7, 3.2, 0.06, 3.6, 0x9c9a92, 0, 0);
   for (const [x, z] of [[-28, -3.4], [-25, -3.4], [-28, 0], [-25, 0]]) site.box(x, 0, z, 0.08, 2.4, 0.08, C.steel);
@@ -102,14 +102,14 @@ function buildStatic(scene) {
   site.box(0.35, 0, 7.05, 0.4, 0.8, 0.3, 0x38393b, 0, 0);
   for (let i = 0; i < 5; i++) site.box(-29.5, 0, 9 + i * 0.7, 1.6, 0.05, 0.05, C.pole);
   // 電柱と電線
-  for (const x of [-34, -8, 18, 42]) { site.box(x, 0, 25.6, 0.32, 10, 0.32, C.pole, 0, 0); site.box(x, 8.6, 25.6, 1.8, 0.12, 0.12, C.pole, 0, 0); }
+  for (const x of [-34, -8, 18, 44]) { site.box(x, 0, 25.6, 0.32, 10, 0.32, C.pole, 0, 0); site.box(x, 8.6, 25.6, 1.8, 0.12, 0.12, C.pole, 0, 0); }
   // 田んぼ(道の向こう)
   groups.fields = [];
   // 看板(入口)
   site.box(-14.2, 0, 19.0, 0.15, 2.2, 0.15, C.steel);
   scene.userData.siteMesh = site.mesh(mat); groups.site.add(scene.userData.siteMesh);
   const fieldMat = new THREE.MeshLambertMaterial({ color: C.field });
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 5; i++) {
     const m = new THREE.Mesh(new THREE.BoxGeometry(21, 0.2, 18), fieldMat);
     m.position.set(-34 + i * 23, -0.25, 36); m.receiveShadow = true; groups.site.add(m);
     const ridge = new THREE.Mesh(new THREE.BoxGeometry(21.6, 0.3, 0.5), new THREE.MeshLambertMaterial({ color: 0x8a7a5a }));
@@ -125,7 +125,7 @@ function buildStatic(scene) {
   const treeMat = new THREE.MeshLambertMaterial({ color: 0x4d6438, flatShading: true });
   const trunkMat = new THREE.MeshLambertMaterial({ color: 0x5c4a38 });
   scene.userData.trees = [];
-  for (const [x, z, s] of [[-30.5, -6, 1], [-30, 2, 0.8], [-30.4, 14, 1.1], [29, -7, 0.9], [29.5, 2, 1.2], [29, 15, 0.8], [-18, -13.6, 0.9], [8, -13.4, 1.0], [20, -13.6, 0.8]]) {
+  for (const [x, z, s] of [[-30.5, -6, 1], [-30, 2, 0.8], [-30.4, 14, 1.1], [47, -7, 0.9], [47.5, 2, 1.2], [47, 15, 0.8], [44, -13.4, 0.9], [-18, -13.6, 0.9], [8, -13.4, 1.0], [20, -13.6, 0.8]]) {
     const t = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.18, 1.6, 5), trunkMat); t.position.set(x, 0.8, z);
     const f = new THREE.Mesh(new THREE.IcosahedronGeometry(1.4 * s, 0), treeMat); f.position.set(x, 2.3 + s * 0.6, z); f.castShadow = true;
     groups.site.add(t, f); scene.userData.trees.push(f);
@@ -183,7 +183,7 @@ function buildStatic(scene) {
   const fb = { '1': new Builder(), '2': new Builder(), '3': new Builder(), W: new Builder() };
   for (const n of nodes.values()) {
     if (n.kind === 'desk') desk(fb[n.fl] || fb.W, n);
-    if (n.kind === 'seat') chair(fb[n.fl] || fb.W, n, C.chair);
+    if (n.kind === 'seat' && !n.bench) chair(fb[n.fl] || fb.W, n, C.chair);
     if (n.kind === 'sofa') sofa(fb[n.fl] || fb.W, n);
   }
   // 1階
@@ -247,7 +247,7 @@ function buildStatic(scene) {
   w.box(wx, 0, WH.z0 - 0.1, WW + 0.4, WH.h, 0.2, C.whWall, 0, 0.01);
   w.box(WH.x0 - 0.1, 0, wz - 3, 0.2, WH.h, WD - 6, C.whWall, 0, 0.01);
   w.box(WH.x0 - 0.1, 2.4, 1.0, 0.2, WH.h - 2.4, 4, C.whWall, 0, 0.01);
-  w.box(WH.x1 + 0.1, 0, wz, 0.2, WH.h, WD + 0.4, C.whWall, 0, 0.01);
+  w.box(WH.x1 + 0.1, 0, -6.5, 0.2, WH.h, 9.2, C.whWall, 0, 0.01); w.box(WH.x1 + 0.1, 0, 1.4, 0.2, WH.h, 3.6, C.whWall, 0, 0.01); w.box(WH.x1 + 0.1, 2.4, -1.4, 0.2, WH.h - 2.4, 2.2, C.whWall, 0, 0.01);
   w.box(wx, WH.h - 1.2, WH.z0 + 0.0, WW + 0.4, 0.9, 0.24, 0x4a6177, 0, 0);
   // 正面(低い壁+シャッター開口)
   for (const [a, bb] of [[1, 2.9], [5.1, 8.5], [11.5, 13.5], [16.5, 18.5], [21.5, 27]]) w.box((a + bb) / 2, 0, WH.z1 + 0.1, bb - a, 1.0, 0.2, C.whWall);
@@ -302,6 +302,67 @@ function buildStatic(scene) {
   anzen.position.set(14, 5.6, WH.z0 + 0.15); groups.wh.add(anzen);
   const whSign = plane(textTex('丸栄商事 物流センター', { w: 1024, h: 128, bg: '#e9ecec', fg: '#1d3557', font: 'bold 80px "BIZ UDPGothic", sans-serif' }), 9, 1.1);
   whSign.position.set(14, 6.0, WH.z1 + 0.25); groups.wh.add(whSign);
+
+  // ---------- 米穀倉庫・精米室 ----------
+  {
+    const r = new Builder();
+    const cx = (RW.x0 + RW.x1) / 2, cz = (RW.z0 + RW.z1) / 2, W = RW.x1 - RW.x0, D = RW.z1 - RW.z0;
+    r.box(cx, -0.2, cz, W + 0.4, 0.2, D + 0.4, C.slab, 0, 0);
+    r.box(cx, 0, cz, W, 0.02, D, 0xb3ab98, 0, 0.02);
+    r.box(cx, 0, RW.z0 - 0.1, W + 0.4, RW.h, 0.2, 0xc9bfa8, 0, 0.01);
+    r.box(RW.x1 + 0.1, 0, cz, 0.2, RW.h, D + 0.4, 0xc9bfa8, 0, 0.01);
+    r.box(RW.x0 - 0.1, 0, -6.5, 0.2, RW.h, 9.2, 0xc9bfa8, 0, 0.01); r.box(RW.x0 - 0.1, 0, 1.4, 0.2, RW.h, 3.6, 0xc9bfa8, 0, 0.01); r.box(RW.x0 - 0.1, 2.4, -1.4, 0.2, RW.h - 2.4, 2.2, 0xc9bfa8, 0, 0.01);
+    r.box(cx - 3.2, 0, RW.z1 + 0.1, W / 2 - 2, 1.0, 0.2, 0xc9bfa8); r.box(cx + 4.2, 0, RW.z1 + 0.1, W / 2 - 3.4, 1.0, 0.2, 0xc9bfa8);
+    for (const x of [RW.x0, 36, RW.x1]) r.box(x, 0, RW.z1 + 0.05, 0.3, RW.h, 0.3, 0x6a5a48, 0, 0);
+    for (let x = RW.x0 + 1.5; x < RW.x1; x += 3) r.box(x, RW.h, cz, 0.16, 0.16, D, 0x6a5a48, 0, 0);
+    // 米袋の山(30kg袋をパレットに)
+    for (const [x, z] of [[36, -4.9], [38.5, -4.9], [36, -7.7], [38.5, -7.7], [34.5, -9.9], [37, -9.9]]) {
+      r.box(x, 0, z, 1.2, 0.14, 1.1, C.pallet, 0, 0);
+      const lv = 3 + Math.floor(Math.random() * 4);
+      for (let k = 0; k < lv; k++) for (const dz of [-0.27, 0.27]) r.box(x, 0.14 + k * 0.22, z + dz, 1.1, 0.22, 0.5, k % 2 ? 0xe9e1cc : 0xf1ead6, (k % 2) * 0.04, 0.04);
+    }
+    // 精米機と計量器
+    r.box(32.8, 0, -7.6, 1.6, 2.6, 1.2, 0x5f7a6a, 0, 0); r.box(32.8, 2.6, -7.6, 0.9, 0.9, 0.9, 0x8aa094, 0, 0);
+    r.box(31.0, 0, -7.6, 0.5, 3.6, 0.5, 0x8a9a92, 0, 0); r.box(31.9, 3.4, -7.6, 1.8, 0.18, 0.3, 0x8a9a92, 0, 0);
+    r.box(34.4, 0, -6.4, 0.7, 0.75, 0.7, 0x9aa2a6, 0, 0); r.box(34.4, 0.75, -6.4, 0.5, 0.05, 0.5, 0x2a2a2a, 0, 0);
+    r.box(31.85, 0, -10.2, 0.7, 0.72, 1.2, C.wood); r.box(32.0, 0.72, -10.5, 0.3, 0.2, 0.3, 0x2a2a2a, 0, 0);
+    r.box(30.6, 0, -10.6, 0.5, 1.6, 0.5, 0xc4c5be);
+    // 低温倉庫(15℃)
+    r.box(40, 0, -5.6, 2.6, 3.0, 0.15, C.coldPanel); r.box(38.7, 0, -8.3, 0.15, 3.0, 5.4, C.coldPanel); r.box(40, 3.0, -8.3, 2.8, 0.12, 5.4, C.coldPanel);
+    for (let z = -7; z > -10.6; z -= 1.2) r.box(40.6, 0, z, 0.9, 1.0 + Math.random() * 0.6, 1.0, 0xe9e1cc, 0, 0.04);
+    // 屋外:車庫と洗車場
+    r.box(35.5, 0, 10.5, 11, 0.04, 8, 0x6f7275, 0, 0);
+    for (const [x, z] of [[30.2, 6.8], [40.8, 6.8], [30.2, 14.2], [40.8, 14.2]]) r.box(x, 0, z, 0.25, 4.2, 0.25, C.steel, 0, 0);
+    r.box(35.5, 4.2, 10.5, 11.4, 0.12, 8.2, 0x7d8a92, 0, 0);
+    r.box(30.6, 0, 11.5, 0.4, 1.0, 0.4, 0x3a6a8a, 0, 0); r.box(30.6, 1.0, 11.5, 0.6, 0.6, 0.2, 0x2e5a3a, 0, 0); // ホースリール
+    r.box(35.5, 0.01, 9.5, 3.4, 0.01, 2.4, 0x4a5258, 0, 0); // 水たまり
+    // 古い2tトラック(廃車待ち)
+    r.box(38.6, 0, 12.6, 2.0, 0.9, 5.2, 0xd8d4c6, 0, 0); r.box(38.6, 0.9, 14.4, 1.9, 1.2, 1.6, 0xd8d4c6, 0, 0); r.box(38.6, 0.9, 11.8, 2.0, 1.4, 3.4, 0xe6e4dc, 0, 0);
+    for (const z of [10.8, 14.6]) for (const x of [37.6, 39.6]) r.box(x, 0, z, 0.3, 0.7, 0.7, 0x1b1b1b, 0, 0);
+    // 灯油タンク・物置
+    r.box(43.5, 0, -6, 1.2, 1.6, 2.2, 0xd8d0b4, 0, 0); r.box(43.5, 0, -1.5, 1.6, 2.1, 2.6, 0xa7b0a6, 0, 0);
+    // 渡り廊下(倉庫〜米穀倉庫)
+    r.box(28.5, 0, -1.4, 3.2, 0.05, 2.0, 0xb0ada4, 0, 0); r.box(28.5, 2.5, -1.4, 3.4, 0.1, 2.4, 0x7c8890, 0, 0);
+    groups.wh.add(r.mesh(mat));
+    const rs = plane(textTex('米穀倉庫・精米室', { w: 512, h: 96, bg: '#efe9d8', fg: '#3b2f1e', font: 'bold 56px "BIZ UDPMincho", serif' }), 5, 0.95);
+    rs.position.set(36, 4.4, RW.z1 + 0.25); groups.wh.add(rs);
+    const ts = plane(textTex('低温倉庫 15℃', { w: 256, h: 64, bg: '#4a6a3a', fg: '#fff', font: 'bold 34px "BIZ UDPGothic", sans-serif' }), 1.4, 0.35);
+    ts.position.set(40, 2.5, -5.5); groups.wh.add(ts);
+  }
+  // ---------- ゴミ置き場・ベンチ・花壇・社旗 ----------
+  {
+    const o = new Builder();
+    o.box(-29.3, 0, 13.8, 0.1, 1.5, 4.2, 0x8a9096); o.box(-28.4, 0, 11.7, 1.9, 1.5, 0.1, 0x8a9096); o.box(-28.4, 1.5, 13.8, 2.2, 0.08, 4.4, 0x6a7680);
+    o.box(-28.8, 0, 12.8, 1.0, 1.1, 0.8, 0x2f5d3a, 0, 0); o.box(-28.8, 0, 14.0, 1.0, 1.1, 0.8, 0x2f5d3a, 0, 0); // ゴミ箱
+    o.box(-28.6, 0, 15.3, 1.2, 1.2, 0.9, C.carton, 0.1, 0.06); o.box(-28.6, 1.2, 15.3, 1.0, 0.5, 0.8, C.carton2, -0.1, 0.06); // 段ボール
+    for (const x of [-10.9, -8.1]) o.box(x, 0, 6.8, 0.1, 0.42, 0.4, 0x4a4a4a, 0, 0);
+    o.box(-9.5, 0.42, 6.8, 3.0, 0.08, 0.5, C.wood); o.box(-9.5, 0.5, 7.05, 3.0, 0.4, 0.06, C.wood);
+    for (const [x, w2] of [[-15, 4.2], [-3.2, 2.2]]) { o.box(x, 0, 5.6, w2, 0.4, 0.9, 0x8f8a7e, 0, 0); for (let k = 0; k < w2 * 2; k++) o.box(x - w2 / 2 + 0.3 + k * 0.5, 0.4, 5.6, 0.3, 0.3, 0.3, [0xb8433a, 0xe0c040, 0x7a4fa0, 0x4f7a3a][k % 4], 0, 0.08); }
+    o.box(-21, 0, 5.4, 0.1, 7, 0.1, 0xd0d0cc, 0, 0); // 旗竿
+    groups.site.add(o.mesh(mat));
+    const flag = plane(textTex('丸栄', { w: 192, h: 128, bg: '#ffffff', fg: '#173c6b', font: 'bold 72px "BIZ UDPMincho", serif' }), 1.5, 1.0);
+    flag.position.set(-20.2, 6.3, 5.4); flag.material.side = THREE.DoubleSide; groups.site.add(flag); scene.userData.flag = flag;
+  }
   // 渡り廊下
   const wb = new Builder(); wb.box(-0.4, 0, -0.2, 3.2, 0.05, 2.0, 0xb0ada4, 0, 0); wb.box(-0.4, 2.5, -0.2, 3.4, 0.1, 2.4, 0x7c8890, 0, 0);
   for (const [x, z] of [[-1.9, 0.9], [1.1, 0.9], [-1.9, -1.3], [1.1, -1.3]]) wb.box(x, 0, z, 0.08, 2.5, 0.08, C.steel);
@@ -466,12 +527,12 @@ export class View {
     this.cam = new THREE.OrthographicCamera(-30 * aspect, 30 * aspect, 30, -30, 0.1, 500);
     this.cam.position.set(30, 40, 70);
     this.controls = new OrbitControls(this.cam, this.renderer.domElement);
-    this.controls.target.set(-5, 4, -1);
+    this.controls.target.set(8, 3.5, -1);
     this.controls.enableDamping = true; this.controls.dampingFactor = 0.08;
     this.controls.minPolarAngle = 0.35; this.controls.maxPolarAngle = 1.25;
     this.controls.minZoom = 0.6; this.controls.maxZoom = 6;
     this.controls.zoomSpeed = 1.2;
-    this.cam.zoom = 1.55; this.cam.updateProjectionMatrix();
+    this.cam.zoom = 1.22; this.cam.updateProjectionMatrix();
     this.hemi = new THREE.HemisphereLight(0xdfe7ef, 0x6b6558, 1.1); this.scene.add(this.hemi);
     this.sun = new THREE.DirectionalLight(0xfff3e0, 1.6);
     this.sun.position.set(30, 50, 25); this.sun.castShadow = true;
@@ -480,7 +541,7 @@ export class View {
     this.sun.shadow.bias = -0.0008; this.sun.shadow.normalBias = 0.03;
     this.scene.add(this.sun, this.sun.target);
     this.inLights = [];
-    for (const [x, y, z] of [[-13, 2.6, -3], [-13, 2.6 + FLOOR_H, -3], [-13, 2.6 + FLOOR_H * 2, -3], [9, 5.5, -4], [21, 5.5, -4]]) {
+    for (const [x, y, z] of [[-13, 2.6, -3], [-13, 2.6 + FLOOR_H, -3], [-13, 2.6 + FLOOR_H * 2, -3], [9, 5.5, -4], [21, 5.5, -4], [36, 4.4, -4]]) {
       const l = new THREE.PointLight(0xf2f6ff, 0, 22, 1.2); l.position.set(x, y, z); this.scene.add(l); this.inLights.push(l);
     }
     this.groups = buildStatic(this.scene);
@@ -561,7 +622,66 @@ export class View {
   }
 
   // シミュレーションの状態を反映
+  // 2階の行動予定表と倉庫の配車ボード(ホワイトボード)を描き直す
+  boards(w) {
+    if (!this.boardTex) {
+      const mk = (w2, h2, x, y, z, pw, ph, grp) => {
+        const cv = document.createElement('canvas'); cv.width = w2; cv.height = h2;
+        const tx = new THREE.CanvasTexture(cv); tx.colorSpace = THREE.SRGBColorSpace; tx.anisotropy = 4;
+        const m = new THREE.Mesh(new THREE.PlaneGeometry(pw, ph), new THREE.MeshLambertMaterial({ map: tx }));
+        m.position.set(x, y, z); grp.add(m);
+        return { cv, tx };
+      };
+      this.boardTex = {
+        yotei: mk(512, 240, -12.5, FLY['2'] + 1.8, -8.92, 2.15, 1.0, this.groups.f2),
+        haisha: mk(320, 200, 5.6, 1.85, -10.87, 1.36, 0.85, this.groups.wh),
+      };
+      this.boardKey = '';
+    }
+    const sales = w.people.filter(p => p.status === 'active' && (p.role === 'sales' || p.role === 'jimu' || p.role === 'buyer')).slice(0, 14);
+    const st = p => {
+      const T = p.today; if (!T || T.absent) return T?.absent ? (/有給|私用/.test(T.absent) ? '休み' : T.absent === '体調不良' ? '病欠' : '休み') : '';
+      if (!T.in) return minuteOfDay(w.t) < (T.arrive || 0) ? '' : '帰宅';
+      if (T.outNow) { const o = T.outs.find(o => minuteOfDay(w.t) >= o[0] && minuteOfDay(w.t) < o[1]); const c = w.clients.filter(c => c.rep === p.id); return `外出 ${c.length ? c[(o ? o[0] : 0) % c.length].name.slice(0, 7) : ''} ${o ? Math.floor(o[1] / 60) + ':' + String(Math.round(o[1] % 60 / 10) * 10).padStart(2, '0') + '帰' : ''}`; }
+      return '在席';
+    };
+    const key = sales.map(p => p.id + st(p)).join('|') + w.trucks.map(t => t.state).join('');
+    if (key === this.boardKey) return;
+    this.boardKey = key;
+    { // 行動予定表
+      const { cv, tx } = this.boardTex.yotei; const g = cv.getContext('2d');
+      g.fillStyle = '#f6f6f1'; g.fillRect(0, 0, cv.width, cv.height);
+      g.strokeStyle = '#2a3a8a'; g.lineWidth = 1.2; g.font = '15px "BIZ UDPGothic", sans-serif'; g.fillStyle = '#1f2f80';
+      g.fillText('行動予定表', 8, 18);
+      const d = dateOf(dayIndex(w.t)); g.fillStyle = '#b02a2a'; g.fillText(`${d.m}/${d.d}`, 440, 18);
+      sales.forEach((p, i) => {
+        const col = i < 7 ? 0 : 1, row = i % 7, x = 6 + col * 252, y = 30 + row * 29;
+        g.strokeStyle = '#9aa0a8'; g.strokeRect(x, y, 246, 27);
+        g.fillStyle = '#222'; g.font = '14px "BIZ UDPGothic", sans-serif'; g.fillText(p.sei, x + 5, y + 19);
+        const s2 = st(p); g.fillStyle = /外出/.test(s2) ? '#1f3fa0' : /休|病欠/.test(s2) ? '#b02a2a' : '#333';
+        g.font = '13px "BIZ UDPGothic", sans-serif'; g.fillText(s2, x + 64, y + 19);
+        if (s2 === '在席') { g.fillStyle = '#c03a2a'; g.beginPath(); g.arc(x + 232, y + 13, 6, 0, 7); g.fill(); }
+      });
+      tx.needsUpdate = true;
+    }
+    { // 配車ボード
+      const { cv, tx } = this.boardTex.haisha; const g = cv.getContext('2d');
+      g.fillStyle = '#f6f6f1'; g.fillRect(0, 0, cv.width, cv.height);
+      g.fillStyle = '#1f2f80'; g.font = '16px "BIZ UDPGothic", sans-serif'; g.fillText('配車ボード', 8, 20);
+      w.trucks.forEach((t, i) => {
+        const dr = w.people.find(p => p.truck === i && p.status === 'active');
+        const y = 46 + i * 46;
+        g.strokeStyle = '#9aa0a8'; g.strokeRect(6, y - 20, 308, 40);
+        g.fillStyle = '#222'; g.font = '15px "BIZ UDPGothic", sans-serif'; g.fillText(`${i + 1}号車 ${t.label}`, 12, y);
+        g.fillStyle = t.state === 'out' ? '#1f3fa0' : '#555'; g.fillText(`${dr ? dr.sei : '-'}  ${t.state === 'out' ? '配送中' : '在庫'}`, 12, y + 16);
+        if (t.state === 'out') { g.fillStyle = '#c03a2a'; g.beginPath(); g.arc(296, y - 2, 7, 0, 7); g.fill(); }
+      });
+      tx.needsUpdate = true;
+    }
+  }
+
   sync(w, speedFactor) {
+    this.boards(w);
     this.w = w;
     const d = dateOf(dayIndex(w.t));
     for (const p of w.people) {
@@ -641,7 +761,8 @@ export class View {
     for (const p of w.people) if (p.at) { const n = nodes.get(p.at); if (n) occ[n.fl] = (occ[n.fl] || 0) + 1; }
     const lit = (k) => occ[k] > 0 ? (0.6 + (1 - dayT) * 1.6) : 0;
     this.inLights[0].intensity = lit('1') * 22; this.inLights[1].intensity = lit('2') * 22; this.inLights[2].intensity = lit('3') * 22;
-    this.inLights[3].intensity = lit('W') * 30; this.inLights[4].intensity = lit('W') * 30;
+    this.inLights[3].intensity = lit('W') * 30; this.inLights[4].intensity = lit('W') * 30; this.inLights[5].intensity = lit('W') * 22;
+    const fl = this.scene.userData.flag; if (fl) fl.rotation.y = Math.sin(this.clock * 1.3) * 0.15 * (w.weather?.wind || 3) / 6;
     // 季節:田んぼ・雪
     const fieldCol = { 1: 0xc9c6bd, 2: 0xc9c6bd, 3: 0x7a6a50, 4: 0x6f6448, 5: 0x6f8f8a, 6: 0x6f9a40, 7: 0x5f8f2e, 8: 0x7d9a2e, 9: 0xc0a640, 10: 0x8a7a50, 11: 0x7a6a50, 12: 0xc9c6bd }[d.m];
     const snowy = (w.weather?.snowDepth || 0) > 5;

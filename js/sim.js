@@ -7,7 +7,11 @@ import { rel } from './world.js';
 import { bindWorld, full, callName, stat, affect, remember, bossOf, deptMates, liked, disliked, titleShort } from './people.js';
 import { log, later, say, talk, board, news, emit, postChat, P, byKey, active, atWork, onSite, runLines, stdVars, sortQueue, dmKey } from './out.js';
 import { CHATS, ROUTES } from './text/chats.js';
+import { CHATS2, GOSSIP_DM } from './text/chats2.js';
+const ALL_CHATS = [...CHATS, ...CHATS2];
 import { TALKS, MUTTER } from './text/talks.js';
+import { TALKS2, HOBBY_TALK, PHONE, GREET_IN, GREET_IN_REPLY, GREET_OUT, GREET_OUT_REPLY, MEMORY_OPEN, MEMORY_REPLY, MEMORY_FOLLOW, NEWS_OPEN, NEWS_REPLY, LOVER_TALK, RIVAL_TALK } from './text/talks2.js';
+const ALL_TALKS = [...TALKS, ...TALKS2];
 import { EVENTS, CONT, exposeSecret, knows, tell, callTo } from './events.js';
 import { dailySales, closeMonth, projectMonthEnd, creditScore, trailingOrd, borrow, totalDebt, activeClients, addExpense } from './business.js';
 import { stepEconomy, makePaper } from './text/news.js';
@@ -76,7 +80,8 @@ function planDay(w, p, d) {
   if (wh) T.lunch = { at: H(12), until: H(12, 55), place: r === 'driver' ? 'out' : R.chance(0.8) ? 'wbreak' : 'car' };
   else if (p.emp === 'パート' && r === 'reception') T.lunch = { at: H(12, 30), until: H(13, 15), place: 'rest1' };
   else {
-    const where = p.key === 'shacho' || p.key === 'kaicho' ? R.pick(['desk', 'out', 'out']) : R.weighted([{ v: 'rest1', w: p.gender === 'f' ? 4 : 2 }, { v: 'desk', w: 3 }, { v: 'out', w: r === 'sales' ? 3 : 1.2 }, { v: 'car', w: p.smoker ? 1 : 0.4 }]).v;
+    const nice = w.weather && w.weather.kind === '晴れ' && [4, 5, 6, 9, 10].includes(d.m);
+    const where = p.key === 'shacho' || p.key === 'kaicho' ? R.pick(['desk', 'out', 'out']) : R.weighted([{ v: 'rest1', w: p.gender === 'f' ? 4 : 2 }, { v: 'desk', w: 3 }, { v: 'out', w: r === 'sales' ? 3 : 1.2 }, { v: 'car', w: p.smoker ? 1 : 0.4 }, { v: 'bench', w: nice ? 1.6 : 0 }]).v;
     T.lunch = { at: H(12), until: H(13), place: where };
   }
   // 外回り(営業)
@@ -457,7 +462,7 @@ const LOCAL_CONT = {
 // ---------- 人の動き ----------
 function inWindow(m, [a, b]) { return m >= a && m < b; }
 function homeNode(p) { return p.desk || null; }
-const WH_SPOTS = () => [...export_wh.pick, ...export_wh.rack, export_wh.cold, export_wh.frozen, ...export_wh.dock];
+const WH_SPOTS = () => [...export_wh.pick, ...export_wh.rack, export_wh.cold, export_wh.frozen, ...export_wh.dock, ...export_wh.rice.slice(0, 2)];
 
 function desiredNode(w, p, m) {
   const T = p.today;
@@ -472,15 +477,21 @@ function desiredNode(w, p, m) {
     if (L === 'rest1') return p.lunchSeat || (p.lunchSeat = R.pick(['rest1_0', 'rest1_1', 'rest1_2', 'rest1_3', 'rest1_4', 'rest1_5']));
     if (L === 'wbreak') return p.lunchSeat || (p.lunchSeat = R.pick(['wbreak_0', 'wbreak_1', 'wbreak_2', 'wbreak_3']));
     if (L === 'desk') return homeNode(p) || 'wbreak_0';
+    if (L === 'bench') return p.lunchSeat || (p.lunchSeat = R.pick(['bench_0', 'bench_1', 'bench_2']));
   }
   if (p.micro && p.micro.until > w.t) return p.micro.at;
   // 役割ごとの居場所
   if (p.role === 'driver') {
     if (T.drive && m < T.drive[0]) return R.pick(export_wh.dock);
+    if (T.drive && m >= T.drive[1] && m < T.drive[1] + 25) return export_wh.wash[(p.truck ?? 0) % export_wh.wash.length];
     return p.desk || 'wbreak_' + (parseInt(p.id.slice(1)) % 4);
   }
   if (p.role === 'souko') {
-    if (!p.workSpot || (p.workUntil || 0) <= w.t) { p.workSpot = R.pick(WH_SPOTS()); p.workUntil = w.t + R.int(4, 16); }
+    if (!p.workSpot || (p.workUntil || 0) <= w.t) {
+      if (p.annex) { p.workSpot = p.key === 'seimai1' && R.chance(0.55) ? R.pick(export_wh.seimai.concat(['seimai_desk'])) : R.pick(export_wh.rice); }
+      else p.workSpot = R.pick(WH_SPOTS());
+      p.workUntil = w.t + R.int(4, 16);
+    }
     return p.workSpot;
   }
   return homeNode(p) || 'wbreak_0';
@@ -499,7 +510,8 @@ function microBreaks(w, p, m) {
   if (r < 0.012 && fl !== 'W') { const k = fl === '1' || fl === '3' ? R.pick(['kitchen1_0', 'kitchen1_1', 'kitchen1_2']) : R.pick(['kitchen2_0', 'kitchen2_1', 'kitchen2_2']); p.micro = { until: w.t + R.int(3, 8), at: k }; return; }
   if (r < 0.016 && fl === 'W' && p.role !== 'souko') { p.micro = { until: w.t + R.int(4, 9), at: R.pick(['wbreak_0', 'wbreak_1', 'wbreak_2', 'wbreak_3']) }; return; }
   if (r < 0.019 && fl === '2') { p.micro = { until: w.t + R.int(2, 4), at: R.pick(['copy2', 'fax2', 'board2']) }; return; }
-  if (r < 0.021 && fl === 'W' && p.role === 'souko') { p.micro = { until: w.t + R.int(5, 8), at: R.pick(['wbreak_0', 'wbreak_1', 'wbreak_2']) }; return; }
+  if (r < 0.0215 && (p.role === 'admin' || p.role === 'souko' || p.role === 'reception') && m > H(9) && m < H(16, 30)) { p.micro = { until: w.t + R.int(4, 7), at: R.pick(['gomi', 'gomi_1']) }; return; }
+  if (r < 0.023 && fl === 'W' && p.role === 'souko') { p.micro = { until: w.t + R.int(5, 8), at: R.pick(['wbreak_0', 'wbreak_1', 'wbreak_2']) }; return; }
 }
 
 function updatePeople(w, m) {
@@ -529,6 +541,8 @@ function updatePeople(w, m) {
     if (want && p.at && want === homeNode(p)) microBreaks(w, p, m);
     const want2 = desiredNode(w, p, m);
     if (want2 !== p.at) { p.at = want2; p.moved = w.t; }
+    if (p.at && !T.greeted && m - T.arrive >= 3 && (p.at === p.desk || (!p.desk && nodes.get(p.at)?.fl === 'W'))) greetIn(w, p);
+    if (p.at && !T.byeSaid && T.leave - m === 3) greetOut(w, p);
     T.floor = p.at ? nodes.get(p.at)?.fl : null;
   }
 }
@@ -568,7 +582,11 @@ function conversations(w, m) {
   w.talkBusy = w.talkBusy || {};
   for (const [pl, ps] of groups) {
     if (ps.length < 2) {
-      if (ps.length === 1 && R.chance(0.004)) mutter(w, ps[0], pl);
+      if (ps.length === 1) {
+        const q = ps[0];
+        if (q.at === q.desk && ['sales', 'jimu', 'reception', 'buyer', 'acct', 'logi'].includes(q.role) && R.chance(0.007) && (w.talkBusy[pl] || 0) <= w.t) phoneCall(w, q, pl);
+        else if (R.chance(0.004)) mutter(w, q, pl);
+      }
       continue;
     }
     if ((w.talkBusy[pl] || 0) > w.t) continue;
@@ -609,7 +627,9 @@ function startTalk(w, pl, ctx, ps) {
       return;
     }
   }
-  const cands = TALKS.filter(t => t.at.includes(ctx) && (!t.mon || t.mon.includes(d.m)));
+  if (specialTalk(w, pl, ctx, A, B)) return;
+  const hh = Math.floor(minuteOfDay(w.t) / 60);
+  const cands = ALL_TALKS.filter(t => t.at.includes(ctx) && (!t.mon || t.mon.includes(d.m)) && (!t.wd || t.wd.includes(d.wd)) && (!t.h || (hh >= t.h[0] && hh < t.h[1])));
   for (let i = 0; i < 6; i++) {
     const tpl = R.weighted(cands, t => t.w || 1);
     if (!tpl) return;
@@ -634,6 +654,92 @@ function startTalk(w, pl, ctx, ps) {
     return;
   }
 }
+
+// ---------- 会話の特別な組み立て ----------
+function memKind(t) { return /亡くな|入院|別れ/.test(t) ? 'sad' : /とった|合格|昇給|生まれ|結婚/.test(t) ? 'good' : 'bad'; }
+function specialTalk(w, pl, ctx, A, B) {
+  const r = rel(w, A, B), rb = rel(w, B, A);
+  const casual = ['kyuto', 'smoke', 'wbreak', 'lunch', 'park', 'desk', 'warehouse'].includes(ctx);
+  // 恋人どうし
+  if (r.tags.includes('lover') && R.chance(0.35)) {
+    const { end } = runLines(w, 'talk', { A, B }, R.pick(LOVER_TALK), {}, 0, { place: pl });
+    w.talkBusy[pl] = w.t + end + 4;
+    const near = onSite(w).filter(q => q !== A && q !== B && q.at && nodes.get(q.at)?.place === pl);
+    for (const q of near) { const sec = w.secrets.find(s => (s.kind === 'romance' || s.kind === 'affair') && s.subj.includes(A.id)); if (sec) { tell(w, sec, q); checkExposure(w, sec); } }
+    return true;
+  }
+  // 犬猿の仲
+  if ((r.tags.includes('rival') || r.aff < -35) && R.chance(0.4)) {
+    const { end } = runLines(w, 'talk', { A, B }, R.pick(RIVAL_TALK), {}, 0, { place: pl });
+    w.talkBusy[pl] = w.t + end + 4; affect(w, A, B, -1, 0); affect(w, B, A, -1, 0);
+    return true;
+  }
+  if (!casual) return false;
+  // 最近の出来事を打ち明ける
+  const mem = A.mem.find(m => w.day - m.day <= 6 && m.w >= 2 && !m.told);
+  if (mem && rb.aff > 0 && r.trust > 5 && R.chance(0.3)) {
+    mem.told = true;
+    const kind = memKind(mem.text);
+    const text = mem.text.replace(/。$/, '');
+    runLines(w, 'talk', { A, B }, [['A', R.pick(MEMORY_OPEN)], ['B', R.pick(MEMORY_REPLY[kind])], ['A', R.pick(MEMORY_FOLLOW)]], { mem: text }, 0, { place: pl });
+    w.talkBusy[pl] = w.t + 6; affect(w, A, B, 2, 3); affect(w, B, A, 1, 1);
+    if (kind === 'bad' && mem.about) { const t = P(w, mem.about); if (t && t !== B) affect(w, B, t, -1, 0); }
+    return true;
+  }
+  // 会社の出来事をうわさする
+  if (R.chance(0.14)) {
+    const recent = w.logs.filter(e => e.lvl >= 2 && w.t - e.t < 3 * 1440 && !e.who.includes(A.id) && !e.who.includes(B.id));
+    if (recent.length) {
+      const e = R.pick(recent);
+      let txt = e.text.split('。')[0]; if (txt.length > 48) txt = txt.slice(0, 46) + '…';
+      runLines(w, 'talk', { A, B }, [['A', R.pick(NEWS_OPEN) + txt + '((って|らしいよ|んだって))'], ['B', R.pick(NEWS_REPLY)]], {}, 0, { place: pl });
+      w.talkBusy[pl] = w.t + 4;
+      return true;
+    }
+  }
+  // 趣味の話
+  if (R.chance(0.16)) {
+    const hob = A.life.hobby.find(h => HOBBY_TALK.some(([re]) => re.test(h)));
+    if (hob) {
+      const [, ls] = HOBBY_TALK.find(([re]) => re.test(hob));
+      const same = B.life.hobby.some(h => h === hob);
+      runLines(w, 'talk', { A, B }, [['A', ls[0]], ['B', same ? '((俺も行った|私もそれ好き|今度一緒に行こう))' : '((へえ|そうなんだ|詳しいね|全然わからない{w}))'], ['A', ls[1]]], {}, 0, { place: pl });
+      w.talkBusy[pl] = w.t + 5; affect(w, A, B, same ? 3 : 1, 1);
+      return true;
+    }
+  }
+  return false;
+}
+function phoneCall(w, p, pl) {
+  const v = stdVars(w, p);
+  const lines = R.pick(PHONE);
+  lines.forEach((l, i) => talk(w, p, null, l, i * R.int(1, 2), v, pl));
+  w.talkBusy[pl] = w.t + lines.length * 2;
+}
+export function greetIn(w, p) {
+  if (!p.at || !p.today || p.today.greeted) return;
+  p.today.greeted = true;
+  const n = nodes.get(p.at); if (!n || !n.place) return;
+  const near = onSite(w).filter(q => q !== p && q.at && nodes.get(q.at)?.place === n.place);
+  if (!near.length || R.chance(0.3)) return;
+  const tmp = w.weather?.temp ?? 15, wk = w.weather?.kind || '';
+  const extra = /雪/.test(wk) ? '。雪((すごい|やばい))ですね' : /雨/.test(wk) ? '。雨((ひどい|すごい))ですね' : tmp < 6 ? '。寒いですね' : tmp > 26 ? '。暑いですね' : '';
+  talk(w, p, null, R.pick(GREET_IN.slice(0, 5)) + (R.chance(0.3) ? extra : ''), 0, {}, n.place);
+  const q = near.length ? R.pick(near) : null;
+  if (q) talk(w, q, p, rel(w, q, p).aff < -20 ? '((……|あ、どうも))' : R.pick(GREET_IN_REPLY), 1, {}, n.place);
+}
+export function greetOut(w, p) {
+  if (!p.at || !p.today || p.today.byeSaid) return;
+  p.today.byeSaid = true;
+  const n = nodes.get(p.at); if (!n || !n.place) return;
+  const near = onSite(w).filter(q => q !== p && q.at && nodes.get(q.at)?.place === n.place);
+  if (!near.length) return;
+  talk(w, p, null, R.pick(GREET_OUT), 0, {}, n.place);
+  const q = R.pick(near);
+  talk(w, q, p, R.pick(GREET_OUT_REPLY), 1, {}, n.place);
+  if (near.length > 2 && R.chance(0.5)) talk(w, R.pick(near.filter(x => x !== q)), p, R.pick(GREET_OUT_REPLY), 2, {}, n.place);
+}
+
 function newSecretSmall(w, a, c) {
   if (w.secrets.some(s => s.kind === 'warukuchi' && s.subj[0] === a.id && !s.exposed)) return null;
   const s = { id: 'sec' + (w.secretSeq = (w.secretSeq || 0) + 1), kind: 'warukuchi', subj: [a.id], target: c.id, text: `${a.sei}さん、${c.sei}${titleShort(c) || 'さん'}の悪口ばっかり言ってるよ`, sev: 1, known: [a.id], exposed: false, day: w.day };
@@ -678,7 +784,7 @@ function routineChat(w, m) {
   if (!R.chance(rate)) return;
   const pool = evening || off ? active(w) : atWork(w);
   if (pool.length < 2) return;
-  const cands = CHATS.filter(c => h >= c.h[0] && h < c.h[1] && (!c.mon || c.mon.includes(d.m)) && (!evening || c.ch === 'dm' || c.ch === 'zatsudan'));
+  const cands = ALL_CHATS.filter(c => h >= c.h[0] && h < c.h[1] && (!c.mon || c.mon.includes(d.m)) && (!evening || c.ch === 'dm' || c.ch === 'zatsudan'));
   for (let i = 0; i < 5; i++) {
     const tpl = R.weighted(cands, c => c.w || 1);
     if (!tpl) return;
@@ -716,6 +822,29 @@ export function step(w) {
     for (const c of w.cars) if (c.owner) carState(w, c.id, false);
   }
   routineChat(w, m);
+  gossipAboutLogs(w);
+}
+
+// 大きな出来事のあと、裏で個別メッセージが飛び交う
+function gossipAboutLogs(w) {
+  const from = w.gossipSeq || 0;
+  const last = w.logSeq || 0;
+  if (from >= last) return;
+  w.gossipSeq = last;
+  for (const e of w.logs.filter(x => x.id > from && x.lvl >= 2 && !/入社式|経営計画|月次:/.test(x.text))) {
+    const n = e.lvl >= 3 ? R.int(1, 3) : (R.chance(0.5) ? 1 : 0);
+    for (let i = 0; i < n; i++) {
+      const pool = active(w).filter(p => !e.who.includes(p.id));
+      const A = R.weighted(pool, p => p.traits.gossip ** 2 / 100);
+      if (!A) continue;
+      const B = R.weighted(pool.filter(q => q !== A && rel(w, A, q).trust > 5), q => Math.max(1, rel(w, A, q).aff + 20));
+      if (!B) continue;
+      let ev = e.text.split('。')[0]; if (ev.length > 40) ev = ev.slice(0, 38) + '…';
+      const tpl = R.pick(GOSSIP_DM);
+      const cast = { A, B };
+      runLines(w, 'dm', cast, tpl.map((t, k) => [k % 2 ? 'B' : 'A', t]), { ev }, R.int(5, 90) + i * 30);
+    }
+  }
 }
 
 // 画面からの読み出し用

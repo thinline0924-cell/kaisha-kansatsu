@@ -89,7 +89,7 @@ export function stdVars(w, A) {
   const c = mine.length && R.chance(0.75) ? R.pick(mine) : R.pick(clients);
   const s = R.pick(w.suppliers);
   return {
-    cust: c.name, contact: c.contact.sei, prod: pickProduct(), sup: s.name, comp: R.pick(w.competitors),
+    cust: c.name, cust2: R.pick(clients).name, me2: R.pick(w.people.filter(p => p.status === 'active')).sei, contact: c.contact.sei, prod: pickProduct(), sup: s.name, comp: R.pick(w.competitors),
     num: R.int(2, 30), num2: R.int(0, 40), num3: R.pick([5, 10, 15, 20, 30, 50]), num4: R.int(3, 25), num5: R.int(86, 108),
     num6: R.int(1, 6), num7: R.int(1, 5), num8: R.int(33, 39), num9: R.pick(['20', '25', '末']),
     loc: `${R.pick(['A', 'B', 'C', 'D'])}-${R.int(1, 12)}-${R.int(1, 4)}`, truck: R.pick(['1号車', '2号車', '3号車']),

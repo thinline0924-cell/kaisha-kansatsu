@@ -50,6 +50,8 @@ const ROSTER = [
   { key: 'souko2', dept: '物流部', title: '', age: [19, 23], g: 'm', desk: null, rank: 0, role: 'souko' },
   { key: 'part1', dept: '物流部', title: '', age: [50, 59], g: 'f', emp: 'パート', desk: null, rank: 0, role: 'souko' },
   { key: 'part2', dept: '物流部', title: '', age: [42, 52], g: 'f', emp: 'パート', desk: null, rank: 0, role: 'souko' },
+  { key: 'seimai1', dept: '物流部', title: '精米担当', age: [63, 69], g: 'm', emp: '嘱託', desk: 'seimai_desk', rank: 1, role: 'souko', annex: true },
+  { key: 'part3', dept: '物流部', title: '', age: [38, 56], g: 'f', emp: 'パート', desk: null, rank: 0, role: 'souko', annex: true },
   { key: 'gaikoku', dept: '物流部', title: '', age: [24, 29], g: 'x', emp: '特定技能', desk: null, rank: 0, role: 'souko', foreign: true },
 ];
 
@@ -145,7 +147,7 @@ let PID = 0;
 export function makePerson(r, opts = {}) {
   const age = opts.age ?? R.int(r.age[0], r.age[1]);
   let g = r.g === '?' ? (R.chance(0.5) ? 'm' : 'f') : r.g;
-  const p = { id: 'p' + (++PID), key: r.key, dept: r.dept, title: r.title, rank: r.rank, role: r.role, desk: r.desk, emp: r.emp || '正社員', boss: !!r.boss, truck: r.truck };
+  const p = { id: 'p' + (++PID), key: r.key, dept: r.dept, title: r.title, rank: r.rank, role: r.role, desk: r.desk, emp: r.emp || '正社員', boss: !!r.boss, truck: r.truck, annex: !!r.annex };
   if (r.foreign) {
     const fo = R.pick(FOREIGN); p.sei = fo.sei; p.mei = fo.mei; g = fo.g; p.foreign = true; p.foreignFrom = fo.from;
   } else {

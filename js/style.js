@@ -5,7 +5,7 @@ import { shouldBePolite, callName } from './people.js';
 
 const DIALECT = [
   [/だから(?=[、。！!？?]|$)/g, 'だすけ'], [/だからさ/g, 'だすけさ'], [/じゃん/g, 'ねっか'], [/じゃない？/g, 'ねっか？'],
-  [/だよね/g, 'らよね'], [/だよ(?=[。！!？?]|$)/g, 'らて'], [/でしょ/g, 'らろ'], [/すごく/g, 'ばか'], [/すごい/g, 'ばか'],
+  [/だよね/g, 'らよね'], [/だよ(?=[。！!？?]|$)/g, 'らて'], [/でしょ/g, 'らろ'], [/すごく/g, 'ばか'],
   [/とても/g, 'ばか'], [/恥ずかしい/g, 'しょうしい'], [/そうなんだ/g, 'そうなんらて'], [/だろう/g, 'らろう'], [/元気？/g, 'なじらね？'],
 ];
 const TYPO = [
@@ -14,7 +14,7 @@ const TYPO = [
   ['です', 'ですs'], ['発注', '発中'], ['納品', '能品'], ['会議', '解義'],
 ];
 const EMO = {
-  happy: ['😊', '👍', '✨', '😆', '🙌', '☺️'], sorry: ['🙏', '💦', '😓', '🙇‍♀️', '🙇'], neutral: ['', '', '👀', '📦'],
+  happy: ['😊', '👍', '✨', '😆', '🙌', '☺️'], sorry: ['🙏', '💦', '😓', '🙇‍♀️', '🙇'], neutral: ['', '', '', '😊', '🙇'],
   sad: ['😢', '😭', '💦'], ojisan: ['😅', '💦', '❗', '😃', '👍', '🍺', '✨', '❓', '😁', '(^_^)v', '⤴️', '🎵'],
 };
 const KAO = ['(^^)', '(^^;', '(*^^*)', '(^_^;)', '(^-^)', '(>_<)', '(T_T)', '(^^)/'];
@@ -27,6 +27,8 @@ export function speak(text, sp, tg, medium = 'chat', vars = {}, mood = 'neutral'
   const v = { ...vars, me: sp.sei, you: tg ? callName(sp, tg) : '', youSei: tg?.sei ?? '' };
   s = fill(s, v);
   const st = sp.style;
+  if (sp.gender === 'f') s = s.replace(/俺ら/g, '私たち').replace(/俺/g, '私').replace(/僕/g, '私');
+  else if (sp.age >= 30 && polite) s = s.replace(/俺/g, '私');
   // 方言(口頭やくだけた文で)
   if (st.dialect > 0.25 && (!polite || medium === 'talk')) {
     for (const [re, rep] of DIALECT) if (R.chance(st.dialect)) s = s.replace(re, rep);

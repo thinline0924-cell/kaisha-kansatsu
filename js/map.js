@@ -6,6 +6,7 @@ export const WALL_H = 3.0;
 export const FLY = { '1': 0, '2': FLOOR_H, '3': FLOOR_H * 2, W: 0, O: 0 };
 export const BLD = { x0: -24, x1: -2, z0: -9, z1: 3 };
 export const WH = { x0: 1, x1: 27, z0: -11, z1: 3, h: 7 };
+export const RW = { x0: 30, x1: 42, z0: -11, z1: 3, h: 5.5 }; // 米穀倉庫・精米室
 export const AISLE_Z = -0.2;
 
 export const nodes = new Map();
@@ -225,6 +226,42 @@ for (let i = 0; i < 16; i++) {
   add('lane_x', -12, 18.6, 'O', 'path'); tap('laneB', 'lane_x', -12, 18.6); link('lane_x', 'laneA@-12.00');
   add('gate', -12, 21, 'O', 'path'); link('gate', 'lane_x');
   add('gate_w', 14, 21, 'O', 'path'); link('gate_w', 'o_dock');
+}
+
+
+// ---------- 米穀倉庫・精米室(東の別棟) ----------
+{
+  const RZ = -1.4;
+  add('w_east', 26.4, RZ, 'W', 'path'); chainAdd('aW', 'w_east');
+  add('walk2', 28.5, RZ, 'O', 'path'); link('w_east', 'walk2');
+  add('r_west', 30.6, RZ, 'W', 'door'); chainAdd('aR', 'r_west'); link('walk2', 'r_west');
+  export_wh.rice = [];
+  for (const x of [32, 34.5, 37, 39.5]) { const n = add('rice_' + x, x, 0.8, 'W', 'work', { place: 'rice', face: 0 }); tap('aR', n.id, x, RZ); export_wh.rice.push(n.id); }
+  for (const [x, z] of [[36, -4.0], [38.5, -4.0], [36, -6.8], [38.5, -6.8]]) {
+    const tid = `rr_${x}`; if (!nodes.has(tid)) { add(tid, x, -2.6, 'W', 'path'); tap('aR', tid, x, RZ); }
+    const n = add(`ricestack_${x}_${z}`, x, z, 'W', 'work', { place: 'rice', face: Math.PI }); link(tid, n.id); export_wh.rice.push(n.id);
+  }
+  add('seimai_p', 32.5, -3.0, 'W', 'path'); tap('aR', 'seimai_p', 32.5, RZ);
+  for (const [i, [x, z, f]] of [[32.0, -6.4, Math.PI], [33.6, -6.4, Math.PI], [31.4, -8.8, Math.PI / 2]].entries()) {
+    const n = add('seimai_' + i, x, z, 'W', 'work', { place: 'seimai', face: f }); link('seimai_p', n.id);
+  }
+  export_wh.seimai = ['seimai_0', 'seimai_1', 'seimai_2'];
+  add('seimai_desk', 31.2, -10.2, 'W', 'desk', { face: Math.PI / 2, place: 'seimai', deskX: 31.85, deskZ: -10.2 }); link('seimai_p', 'seimai_desk');
+  add('teion_door', 40, -5.6, 'W', 'path'); tap('aR', 'teion_door', 40, RZ);
+  add('teion', 40, -8.6, 'W', 'work', { place: 'rice', face: Math.PI }); link('teion_door', 'teion'); export_wh.rice.push('teion');
+  add('r_door', 35.5, 2.4, 'W', 'door'); tap('aR', 'r_door', 35.5, RZ);
+  add('o_rdoor', 35.5, 4.9, 'O', 'path'); link('r_door', 'o_rdoor'); chainAdd('front', 'o_rdoor');
+  // 車庫・洗車場
+  add('garage_p', 35.5, 6.4, 'O', 'path'); link('o_rdoor', 'garage_p');
+  export_wh.wash = [];
+  for (const [i, [x, z, f]] of [[33, 9.5, Math.PI / 2], [38, 9.5, -Math.PI / 2], [35.5, 13.2, Math.PI]].entries()) { const n = add('wash_' + i, x, z, 'O', 'work', { place: 'garage', face: f }); link('garage_p', n.id); export_wh.wash.push(n.id); }
+}
+// ゴミ置き場・ベンチ
+{
+  add('gomi', -28.4, 13.5, 'O', 'stand', { place: 'gomi', face: Math.PI / 2 }); add('gomi_p', -26, 11.2, 'O', 'path'); link('gomi', 'gomi_p'); tap('laneA', 'gomi_p', -26, 11.2);
+  add('gomi_1', -28.2, 15.2, 'O', 'stand', { place: 'gomi', face: Math.PI / 2 }); link('gomi_1', 'gomi_p');
+  add('bench_p', -9.5, 5.8, 'O', 'path'); tap('front', 'bench_p', -9.5, 4.9);
+  for (const [i, x] of [-10.2, -9.5, -8.8].entries()) { const n = add('bench_' + i, x, 6.6, 'O', 'seat', { place: 'bench', face: Math.PI, bench: true }); link('bench_p', n.id); }
 }
 
 // 通路を x 順につなぐ

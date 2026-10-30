@@ -71,8 +71,8 @@ export function manYen(v) { // 新聞・会話向け「1億2,300万円」
 //  {key}      vars の値(配列ならランダム)
 export function fill(str, vars = {}, rng = R) {
   let s = str;
-  for (let guard = 0; guard < 6 && s.includes('(('); guard++) {
-    s = s.replace(/\(\(([^()]*)\)\)/g, (_, body) => rng.pick(body.split('|')));
+  for (let guard = 0; guard < 6 && /\(\(/.test(s); guard++) {
+    s = s.replace(/\(\(((?:[^()]|\([^()]*\))*?)\)\)/g, (_, body) => rng.pick(body.split('|')));
   }
   s = s.replace(/\{([a-zA-Z0-9_]+)\}/g, (m, k) => {
     if (!(k in vars)) return m;
